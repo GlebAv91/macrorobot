@@ -12,45 +12,34 @@ class MacroDataFetcher:
         self.api_key = api_key
         self.fred = Fred(api_key=api_key)
 
-    def fetch_last_12_unemployment_rates(self):
+    def fetch_last_12_macro_data(self):
         """
-        Fetch the last 12 data points of unemployment rate.
-        Returns a Pandas DataFrame.
+        Fetch the last 12 data points for unemployment rate, inflation rate, and interest rate.
+        Returns a Pandas DataFrame with all three series aligned by date.
         """
+        # Fetch all series
         unemployment_data = self.fred.get_series("UNRATE")
-        unemployment_last_12 = unemployment_data.tail(12)
-        unemployment_df = pd.DataFrame(
-            unemployment_last_12, columns=["Unemployment Rate"]
-        )
-        unemployment_df.index.name = "Date"
-        unemployment_df.reset_index(inplace=True)
-        return unemployment_df
-
-    def fetch_last_12_inflation_rates(self):
-        """
-        Fetch the last 12 data points of inflation rate (CPI).
-        Returns a Pandas DataFrame.
-        """
         inflation_data = self.fred.get_series("CPIAUCSL")
-        inflation_last_12 = inflation_data.tail(12)
-        inflation_df = pd.DataFrame(inflation_last_12, columns=["Inflation Rate"])
-        inflation_df.index.name = "Date"
-        inflation_df.reset_index(inplace=True)
-        return inflation_df
-
-    def fetch_last_12_interest_rates(self):
-        """
-        Fetch the last 12 data points of interest rates (Federal Funds Rate).
-        Returns a Pandas DataFrame.
-        """
         interest_rate_data = self.fred.get_series("FEDFUNDS")
-        interest_rate_last_12 = interest_rate_data.tail(12)
-        interest_rate_df = pd.DataFrame(
-            interest_rate_last_12, columns=["Interest Rate"]
+
+        # Combine into a single DataFrame
+        combined_df = pd.DataFrame(
+            {
+                "Unemployment_Rate": unemployment_data,
+                "Inflation_Rate": inflation_data,
+                "Interest_Rate": interest_rate_data,
+            }
         )
-        interest_rate_df.index.name = "Date"
-        interest_rate_df.reset_index(inplace=True)
-        return interest_rate_df
+
+        # Drop rows with missing values and keep the last 12 rows
+        combined_df.dropna(inplace=True)
+        combined_df = combined_df.tail(12)
+
+        # Reset index for better readability
+        combined_df.index.name = "Date"
+        combined_df.reset_index(inplace=True)
+
+        return combined_df
 
 
 # Example usage:
@@ -58,12 +47,8 @@ if __name__ == "__main__":
     # Replace 'your_api_key' with your actual FRED API key
     fetcher = MacroDataFetcher(FRED_API_KEY)
 
-    # Fetch the last 12 data points for each indicator
-    unemployment_rate_last_12 = fetcher.fetch_last_12_unemployment_rates()
-    inflation_rate_last_12 = fetcher.fetch_last_12_inflation_rates()
-    interest_rate_last_12 = fetcher.fetch_last_12_interest_rates()
+    # Fetch the last 12 data points for all indicators
+    macro_data_last_12 = fetcher.fetch_last_12_macro_data()
 
     # Display the retrieved data
-    print("Unemployment Rate (Last 12):\n", unemployment_rate_last_12)
-    print("Inflation Rate (Last 12):\n", inflation_rate_last_12)
-    print("Interest Rate (Last 12):\n", interest_rate_last_12)
+    print("Macro Data (Last 12):\n", macro_data_last_12)

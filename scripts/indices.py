@@ -31,14 +31,14 @@ class IndexDataFetcher:
             data = yf.Ticker(index_symbol).history(start=start_date, end=end_date)
 
             # Filter data for the last day of each month
-            monthly_data = self._get_monthly_closing_prices(data)
+            monthly_data = self._get_monthly_closing_prices(data, index_name)
 
             # Add to the dictionary
             indices_data[index_name] = monthly_data
 
         return indices_data
 
-    def _get_monthly_closing_prices(self, data):
+    def _get_monthly_closing_prices(self, data, index_name):
         """
         Extract the closing prices for the last day of each month,
         excluding the current month if it has not finished yet,
@@ -64,9 +64,13 @@ class IndexDataFetcher:
         # Format the data
         monthly_closing = monthly_closing[["Close"]].reset_index()
         monthly_closing.rename(
-            columns={"Close": "Monthly Close Price", "Date": "Month-End Date"},
+            columns={"Close": "Close_Price", "Date": "Date"},
             inplace=True,
         )
+
+        # Add the index name as a separate column
+        monthly_closing["Index_Name"] = index_name
+
         return monthly_closing
 
 
@@ -78,7 +82,7 @@ if __name__ == "__main__":
     # Fetch the last 12 months' close prices for all indices
     indices_close_data = index_fetcher.fetch_last_12_months_close()
 
-    # Display the data
+    # Print the data
     for index_name, index_data in indices_close_data.items():
         print(f"{index_name} (Last 12 Months):")
         print(index_data)
