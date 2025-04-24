@@ -1,69 +1,48 @@
 import pandas as pd
-from fredapi import Fred
+from scripts.macro_data import MacroDataFetcher
+from scripts.indices import IndexDataFetcher
+from scripts.database_connection import conn, cursor
 
-FRED_API_KEY = "354e347f2dd3acd6dbc7badfc7edd0c8"
+# Initialize fetchers
+macro_fetcher = MacroDataFetcher(api_key="354e347f2dd3acd6dbc7badfc7edd0c8")
+index_fetcher = IndexDataFetcher()
+
+# Fetch data
+unemployment_data = macro_fetcher.fetch_last_12_unemployment_rates()
+inflation_data = macro_fetcher.fetch_last_12_inflation_rates()
+interest_rate_data = macro_fetcher.fetch_last_12_interest_rates()
+indices_data = index_fetcher.fetch_last_12_months_close()
 
 
-class MacroDataFetcher:
-    def __init__(self, api_key):
-        """
-        Initialize MacroDataFetcher with the provided FRED API key.
-        """
-        self.api_key = api_key
-        self.fred = Fred(api_key=api_key)
-
-    def fetch_last_12_unemployment_rates(self):
-        """
-        Fetch the last 12 data points of unemployment rate.
-        Returns a Pandas DataFrame.
-        """
-        unemployment_data = self.fred.get_series("UNRATE")
-        unemployment_last_12 = unemployment_data.tail(12)
-        unemployment_df = pd.DataFrame(
-            unemployment_last_12, columns=["Unemployment Rate"]
+# Function to insert data into the database
+def insert_data(table_name, data, date_column):
+    for _, row in data.iterrows():
+        # Check if the date already exists in the table
+        cursor.execute(
+            f"SELECT 1 FROM {table_name} WHERE {date_column} = %s", (row[date_column],)
         )
-        unemployment_df.index.name = "Date"
-        unemployment_df.reset_index(inplace=True)
-        return unemployment_df
-
-    def fetch_last_12_inflation_rates(self):
-        """
-        Fetch the last 12 data points of inflation rate (CPI).
-        Returns a Pandas DataFrame.
-        """
-        inflation_data = self.fred.get_series("CPIAUCSL")
-        inflation_last_12 = inflation_data.tail(12)
-        inflation_df = pd.DataFrame(inflation_last_12, columns=["Inflation Rate"])
-        inflation_df.index.name = "Date"
-        inflation_df.reset_index(inplace=True)
-        return inflation_df
-
-    def fetch_last_12_interest_rates(self):
-        """
-        Fetch the last 12 data points of interest rates (Federal Funds Rate).
-        Returns a Pandas DataFrame.
-        """
-        interest_rate_data = self.fred.get_series("FEDFUNDS")
-        interest_rate_last_12 = interest_rate_data.tail(12)
-        interest_rate_df = pd.DataFrame(
-            interest_rate_last_12, columns=["Interest Rate"]
-        )
-        interest_rate_df.index.name = "Date"
-        interest_rate_df.reset_index(inplace=True)
-        return interest_rate_df
+        if cursor.fetchone() is None:
+            # Insert new data
+            columns = ", ".join(data.columns)
+            values = ", ".join(["%s"] * len(data.columns))
+            cursor.execute(
+                f"INSERT INTO {table_name} ({columns}) VALUES ({values})",
+                tuple(row),
+            )
 
 
-# Example usage:
-if __name__ == "__main__":
-    # Replace 'your_api_key' with your actual FRED API key
-    fetcher = MacroDataFetcher(FRED_API_KEY)
+# Insert macroeconomic data
+insert_data("macro_data", unemployment_data, "Date")
+insert_data("macro_data", inflation_data, "Date")
+insert_data("macro_data", interest_rate_data, "Date")
 
-    # Fetch the last 12 data points for each indicator
-    unemployment_rate_last_12 = fetcher.fetch_last_12_unemployment_rates()
-    inflation_rate_last_12 = fetcher.fetch_last_12_inflation_rates()
-    interest_rate_last_12 = fetcher.fetch_last_12_interest_rates()
+# Insert indices data
+for index_name, index_data in indices_data.items():
+    table_name = index_name.lower().replace(" ", "_") + "_indices"
+    insert_data(table_name, index_data, "Month-End Date")
 
-    # Display the retrieved data
-    print("Unemployment Rate (Last 12):\n", unemployment_rate_last_12)
-    print("Inflation Rate (Last 12):\n", inflation_rate_last_12)
-    print("Interest Rate (Last 12):\n", interest_rate_last_12)
+# Commit changes and close connection
+conn.commit()
+cursor.close()
+conn.close()
+print("Data inserted successfully!")
