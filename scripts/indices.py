@@ -68,6 +68,9 @@ class IndexDataFetcher:
             inplace=True,
         )
 
+        # Round the Close_Price to 2 decimal places
+        monthly_closing["Close_Price"] = monthly_closing["Close_Price"].round(2)
+
         # Add the index name as a separate column
         monthly_closing["Index_Name"] = index_name
 

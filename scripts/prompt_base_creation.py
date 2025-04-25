@@ -7,6 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+from calendar import monthrange
 from scripts.database_connection import cursor
 
 
@@ -14,6 +15,12 @@ from scripts.database_connection import cursor
 current_date = datetime.now()
 end_date = current_date - relativedelta(months=6)  # 6 months back
 start_date = current_date - relativedelta(months=12)  # 12 months back
+
+# Calculate the last day of the finished month before end_date
+last_finished_month = end_date - relativedelta(months=1)
+last_day_of_finished_month = last_finished_month.replace(
+    day=monthrange(last_finished_month.year, last_finished_month.month)[1]
+)
 
 # Query to fetch data dynamically
 query = f"""
@@ -41,7 +48,7 @@ for index_name, prices in formatted_data.items():
     prices_str = ", ".join(map(str, prices))
     output[
         "contents"
-    ] += f"See latest month close {index_name} index prices {prices_str}. "
+    ] += f"See latest 6 month close {index_name} index prices {prices_str} as of {last_day_of_finished_month.strftime('%Y-%m-%d')}. "
 
 with open("output/index_data_prompt.json", "w") as json_file:
     json.dump(output, json_file, indent=4)
