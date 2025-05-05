@@ -73,7 +73,7 @@ for index_name, prices in formatted_index_data.items():
     prices_str = ", ".join(map(str, prices))
     output[
         "contents"
-    ] += f"See latest 6 month close {index_name} index prices {prices_str} as of {end_date.strftime('%Y-%m-%d')}. "
+    ] += f"See latest 6 month close {index_name} index prices {prices_str} as of {last_day_of_finished_month.strftime('%Y-%m-%d')}. "
 
 output["contents"] += "\nMacro data for the same period:\n"
 for macro_entry in formatted_macro_data:

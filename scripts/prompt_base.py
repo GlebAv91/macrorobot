@@ -22,9 +22,12 @@ contents = load_index_data_prompt()
 response = client.models.generate_content(
     model="gemini-2.0-flash",
     contents=(
-        "You are experienced investment analysts. "
+        "You are experienced investment analyst. "
         + contents
-        + "Predict next 6 months close prices starting from current month for all indices. Provide structured output in format: date, index_name, close_price. "
+        + "Predict next 6 months close prices starting from the current month for all indices. "
+        + "Ensure that the predictions use only the last day of each month as the date, "
+        + "and do not include any dates beyond the next 6 months. "
+        + "Provide structured output in the format: date (YYYY-MM-DD), index_name, close_price. "
         + "Do not include any disclaimers, methodology, or recommendations in the response. Only provide the predictions in the specified format."
     ),
 )
