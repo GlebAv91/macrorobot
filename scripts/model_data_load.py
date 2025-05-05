@@ -40,10 +40,15 @@ for entry in model_output:
         (entry["date"], entry["index_name"], entry["predicted_close_price"])
     )
 
-# Insert data into the table
+# Modify the insert query to use the correct column name `predicted_close_price`
 insert_query = """
     INSERT INTO public.index_data_prediction (date, index_name, predicted_close_price)
-    VALUES (%s, %s, %s)
+    SELECT * FROM (VALUES (%s::DATE, %s, %s)) AS new_data(date, index_name, predicted_close_price)
+    WHERE NOT EXISTS (
+        SELECT 1 FROM public.index_data_prediction
+        WHERE public.index_data_prediction.date = new_data.date
+          AND public.index_data_prediction.index_name = new_data.index_name
+    );
 """
 
 try:
